@@ -1,15 +1,12 @@
 package com.inkline.user;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class UserAvatarStorage {
@@ -22,7 +19,11 @@ public class UserAvatarStorage {
             "image/webp", ".webp"
     );
 
-    private final Path root = Paths.get("uploads", "avatars").toAbsolutePath().normalize();
+    private final Cloudinary cloudinary;
+
+    public UserAvatarStorage(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
+    }
 
     public String store(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -33,49 +34,37 @@ public class UserAvatarStorage {
         }
 
         String contentType = file.getContentType();
-        String extension = EXTENSIONS.get(contentType);
-        if (extension == null) {
+        if (!EXTENSIONS.containsKey(contentType)) {
             throw new IllegalArgumentException("Only JPG, PNG, GIF, and WebP images are allowed.");
         }
 
-        Files.createDirectories(root);
-        String fileName = UUID.randomUUID() + extension;
-        Path target = root.resolve(fileName).normalize();
-        if (!target.startsWith(root)) {
-            throw new IOException("Invalid upload path.");
-        }
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "inkline/avatars",
+                            "resource_type", "image",
+                            "use_filename", false,
+                            "unique_filename", true,
+                            "overwrite", false
+                    )
+            );
 
-        try (InputStream input = file.getInputStream()) {
-            Files.copy(input, target);
-        }
+            Object secureUrl = result.get("secure_url");
+            if (secureUrl == null || secureUrl.toString().isBlank()) {
+                throw new IOException("Cloudinary did not return an image URL.");
+            }
 
-        return "/api/media/avatars/" + fileName;
+            return secureUrl.toString();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Could not upload profile photo to Cloudinary.", e);
+        }
     }
 
     public void delete(String avatarUrl) {
-        if (avatarUrl == null) {
-            return;
-        }
-
-        final String prefix1 = "/uploads/avatars/";
-        final String prefix2 = "/api/media/avatars/";
-
-        String fileName;
-        if (avatarUrl.startsWith(prefix1)) {
-            fileName = avatarUrl.substring(prefix1.length());
-        } else if (avatarUrl.startsWith(prefix2)) {
-            fileName = avatarUrl.substring(prefix2.length());
-        } else {
-            return;
-        }
-        if (fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
-            return;
-        }
-
-        try {
-            Files.deleteIfExists(root.resolve(fileName).normalize());
-        } catch (IOException ignored) {
-            // A missing/unreadable old avatar should not prevent profile updates.
-        }
+        // Keep existing assets intact during the migration to Cloudinary.
+        // Old local /api/media URLs remain served by MediaController.
     }
 }

@@ -1,15 +1,12 @@
 package com.inkline.article;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class ArticleCoverStorage {
@@ -22,7 +19,11 @@ public class ArticleCoverStorage {
             "image/webp", ".webp"
     );
 
-    private final Path root = Paths.get("uploads", "articles").toAbsolutePath().normalize();
+    private final Cloudinary cloudinary;
+
+    public ArticleCoverStorage(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
+    }
 
     public String store(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -32,22 +33,33 @@ public class ArticleCoverStorage {
             throw new IllegalArgumentException("Cover image must be 10 MB or smaller.");
         }
 
-        String extension = EXTENSIONS.get(file.getContentType());
-        if (extension == null) {
+        String contentType = file.getContentType();
+        if (!EXTENSIONS.containsKey(contentType)) {
             throw new IllegalArgumentException("Only JPG, PNG, GIF, and WebP images are allowed.");
         }
 
-        Files.createDirectories(root);
-        String fileName = UUID.randomUUID() + extension;
-        Path target = root.resolve(fileName).normalize();
-        if (!target.startsWith(root)) {
-            throw new IOException("Invalid upload path.");
-        }
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "inkline/articles",
+                            "resource_type", "image",
+                            "use_filename", false,
+                            "unique_filename", true,
+                            "overwrite", false
+                    )
+            );
 
-        try (InputStream input = file.getInputStream()) {
-            Files.copy(input, target);
-        }
+            Object secureUrl = result.get("secure_url");
+            if (secureUrl == null || secureUrl.toString().isBlank()) {
+                throw new IOException("Cloudinary did not return an image URL.");
+            }
 
-        return "/api/media/articles/" + fileName;
+            return secureUrl.toString();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Could not upload cover image to Cloudinary.", e);
+        }
     }
 }

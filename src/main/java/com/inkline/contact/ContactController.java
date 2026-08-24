@@ -27,6 +27,8 @@ public class ContactController {
                     Map.of("message", "Your message has been sent successfully.")
             );
         } catch (MailException | IllegalStateException ex) {
+            ex.printStackTrace();
+
             return ResponseEntity.internalServerError().body(
                     Map.of("message", "We couldn't send your message right now. Please try again later.")
             );

@@ -1,150 +1,54 @@
-# Inkline Backend
+# Inkline — Backend
 
-Spring Boot + MySQL backend for the Inkline Medium-style blogging platform.
+Spring Boot REST API for the Inkline blogging platform.
 
-## Requirements
+The backend provides authentication, user profiles, article management, image uploads, contact messages, and database integration for the Inkline frontend.
+
+## Features
+
+- JWT-based authentication
+- User registration and login
+- User profiles
+- Profile avatar uploads
+- Article creation and publishing
+- Article cover image uploads
+- Article feed and article details
+- User/author information
+- Contact Us API
+- MySQL database integration
+- Cloudinary image storage
+- CORS configuration for the frontend
+- OAuth2/social authentication support
+- Production deployment with Railway
+
+## Tech Stack
 
 - Java 17+
-- Maven 3.9+ (or use the Maven wrapper if added later)
+- Spring Boot
+- Spring Web
+- Spring Data JPA
+- Spring Security
+- JWT
 - MySQL 8+
+- Maven
+- Cloudinary
+- OAuth2
+- Gmail SMTP
 
-## 1. Create the database
+---
 
-In MySQL:
+# Requirements
 
-```sql
-CREATE DATABASE inkline CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+Install the following before running the backend locally:
 
-## 2. Configure credentials
+- Java 17 or newer
+- Maven 3.9+
+- MySQL 8+
+- Git
 
-You can use environment variables:
-
-Windows PowerShell:
-
-```powershell
-$env:DB_USERNAME="root"
-$env:DB_PASSWORD="your_mysql_password"
-$env:JWT_SECRET="replace-with-a-long-random-secret-at-least-32-characters"
-```
-
-The default database URL is:
-
-```text
-jdbc:mysql://localhost:3306/inkline
-```
-
-## 3. Run
-
-From this directory:
+Verify:
 
 ```powershell
-mvn spring-boot:run
-```
-
-Backend:
-
-```text
-http://localhost:8080
-```
-
-## Initial API
-
-### Signup
-
-POST `/api/auth/signup`
-
-```json
-{
-  "name": "Ravi Kumar",
-  "username": "ravi.codes",
-  "email": "ravi@example.com",
-  "password": "password123"
-}
-```
-
-### Login
-
-POST `/api/auth/login`
-
-```json
-{
-  "email": "ravi@example.com",
-  "password": "password123"
-}
-```
-
-The response contains a JWT and user object.
-
-### Feed
-
-GET `/api/articles`
-
-### Article
-
-GET `/api/articles/{slug}`
-
-### User
-
-GET `/api/users/{id}`
-
-### Create article
-
-POST `/api/articles`
-
-Header:
-
-```text
-Authorization: Bearer YOUR_JWT
-```
-
-Body:
-
-```json
-{
-  "title": "My first Inkline article",
-  "excerpt": "A short introduction.",
-  "content": "Article content goes here.",
-  "status": "PUBLISHED",
-  "readingTime": 3
-}
-```
-
-## Important
-
-`spring.jpa.hibernate.ddl-auto=update` is convenient for development. Before production, use Flyway or Liquibase migrations and set the schema strategy appropriately.
-
-
-## Contact Us email
-
-The backend now exposes a public contact endpoint:
-
-`POST /api/contact`
-
-Request body:
-
-```json
-{
-  "name": "Visitor Name",
-  "email": "visitor@example.com",
-  "subject": "Question about Inkline",
-  "message": "Hello, I have a question..."
-}
-```
-
-The backend sends the message through Gmail SMTP to `CONTACT_TO`. The visitor's email is set as `Reply-To`.
-
-### Gmail configuration
-
-Use a Google App Password rather than your normal Gmail password.
-
-Windows PowerShell:
-
-```powershell
-$env:MAIL_USERNAME="yourgmail@gmail.com"
-$env:MAIL_PASSWORD="your-16-character-app-password"
-$env:CONTACT_TO="yourgmail@gmail.com"
-mvn spring-boot:run
-```
-
-The Contact Us endpoint is public, so visitors do not need to log in.
+java --version
+mvn --version
+mysql --version

@@ -39,10 +39,7 @@ public class ResendEmailService {
             }
 
         } catch (Exception e) {
-            throw new IllegalStateException(
-                    "Failed to send email through Resend.",
-                    e
-            );
+            System.err.println("Failed to send email through Resend: " + e.getMessage());
         }
     }
 }
